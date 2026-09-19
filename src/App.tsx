@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Project, Settings, Attachment } from './types';
 import { getSettings, saveProject, newProject } from './lib/storage';
 import { runAgent, isVaguePrompt } from './lib/agent';
@@ -12,6 +12,31 @@ type View = 'home' | 'workspace';
 interface PendingBuild {
   prompt: string;
   clarificationText?: string;
+}
+
+const ACCENT_PRESETS: Record<string, string> = {
+  orange: '#f97316',
+  blue: '#3b82f6',
+  purple: '#8b5cf6',
+  green: '#22c55e',
+  red: '#ef4444',
+};
+
+function applySettings(settings: Settings) {
+  const root = document.documentElement;
+  const accent = settings.accentColor === 'custom'
+    ? settings.customAccent
+    : ACCENT_PRESETS[settings.accentColor] ?? ACCENT_PRESETS.orange;
+
+  root.style.setProperty('--trev-accent', accent);
+  root.style.setProperty('--trev-ui-scale', String(settings.uiScale / 100));
+  root.dataset.theme = settings.theme;
+
+  document.body.dataset.theme = settings.theme;
+  document.body.dataset.compact = settings.compactMode ? 'true' : 'false';
+  document.body.dataset.font = settings.fontFamily;
+  document.body.dataset.chatDensity = settings.chatDensity;
+  document.body.dataset.sidebarPosition = settings.sidebarPosition;
 }
 
 function detectProjectType(prompt: string): Project['type'] {
@@ -40,6 +65,10 @@ export default function App() {
   const [creatingStatus, setCreatingStatus] = useState('');
   const [creatingProgress, setCreatingProgress] = useState(0);
   const [pendingBuild, setPendingBuild] = useState<PendingBuild | null>(null);
+
+  useEffect(() => {
+    applySettings(settings);
+  }, [settings]);
 
   async function handleCreateProject(prompt: string, attachments?: Attachment[]) {
     if (!settings.groqApiKey) {
@@ -97,14 +126,12 @@ export default function App() {
     }
   }
 
-  /** Called from home page — check vagueness first */
   function handlePromptSubmit(prompt: string) {
     if (!settings.groqApiKey) {
       setShowSettings(true);
       return;
     }
     if (isVaguePrompt(prompt)) {
-      // Show clarification modal — but we don't have AI clarification text yet, just show the modal
       setPendingBuild({ prompt });
       return;
     }
@@ -124,7 +151,7 @@ export default function App() {
   }
 
   return (
-    <div className="font-body">
+    <div className="font-body min-h-full">
       {view === 'home' ? (
         <HomePage
           onCreateProject={handlePromptSubmit}
@@ -167,19 +194,17 @@ function CreatingOverlay({ status, progress }: { status: string; progress: numbe
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
       <div className="text-center max-w-xs px-4">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[var(--trev-accent)]/20 border border-[var(--trev-accent)]/30 flex items-center justify-center">
           <svg width="28" height="28" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="#f97316" strokeWidth="1.5"/>
-            <circle cx="7" cy="7" r="2" fill="#f97316" className="animate-ping" style={{ transformOrigin: '7px 7px' }}/>
+            <path d="M7 1L13 4V10L7 13L1 10V4L7 1Z" stroke="var(--trev-accent)" strokeWidth="1.5"/>
+            <circle cx="7" cy="7" r="2" fill="var(--trev-accent)" className="animate-ping" style={{ transformOrigin: '7px 7px' }}/>
           </svg>
         </div>
         <h2 className="text-xl font-display font-bold text-[#e8e8f4] mb-1.5">Building your project</h2>
         <p className="text-sm text-[#888899] mb-6">{status}</p>
-
-        {/* Progress bar */}
         <div className="w-full h-1.5 bg-[#1e1e2e] rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#f97316] rounded-full transition-all duration-300 ease-out"
+            className="h-full bg-[var(--trev-accent)] rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
