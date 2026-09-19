@@ -4,6 +4,7 @@ export interface VirtualFile {
   content: string;
   language: string;
   lastModified: number;
+  aiModified?: boolean;
 }
 
 export interface Project {
@@ -16,12 +17,29 @@ export interface Project {
   updatedAt: number;
 }
 
+export interface Attachment {
+  type: 'image' | 'text' | 'file';
+  name: string;
+  /** base64 data URI for images, raw text for text files */
+  content: string;
+  mimeType: string;
+  size: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
   isStreaming?: boolean;
+  attachments?: Attachment[];
+  buildSteps?: BuildStep[];
+}
+
+export interface BuildStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'done' | 'error';
 }
 
 export interface TerminalEntry {
