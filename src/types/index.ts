@@ -48,6 +48,12 @@ export interface TerminalEntry {
   timestamp: number;
 }
 
+export type Theme = 'dark' | 'light' | 'system';
+export type AccentColor = 'orange' | 'blue' | 'purple' | 'green' | 'red' | 'custom';
+export type FontFamily = 'inter' | 'outfit' | 'system';
+export type ChatDensity = 'comfortable' | 'compact';
+export type SidebarPosition = 'left' | 'right';
+
 export interface Settings {
   groqApiKey: string;
   model: string;
@@ -55,5 +61,15 @@ export interface Settings {
   maxTokens: number;
   autoPreview: boolean;
   autoFix: boolean;
-  theme: 'dark' | 'light';
+  theme: Theme;
+  accentColor: AccentColor;
+  customAccent: string;
+  uiScale: number;
+  compactMode: boolean;
+  fontFamily: FontFamily;
+  chatDensity: ChatDensity;
+  sidebarPosition: SidebarPosition;
+  autoSave: boolean;
+  restoreWorkspace: boolean;
+  confirmBeforeDelete: boolean;
 }
