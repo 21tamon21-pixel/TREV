@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getSettings, saveSettings, defaultSettings } from '../../lib/storage';
 import type { Settings } from '../../types';
 
@@ -8,6 +8,14 @@ const GROQ_MODELS = [
   'llama3-8b-8192',
   'mixtral-8x7b-32768',
   'gemma2-9b-it',
+];
+
+const ACCENTS: { key: Settings['accentColor']; label: string; value: string }[] = [
+  { key: 'orange', label: 'Orange', value: '#f97316' },
+  { key: 'blue', label: 'Blue', value: '#3b82f6' },
+  { key: 'purple', label: 'Purple', value: '#8b5cf6' },
+  { key: 'green', label: 'Green', value: '#22c55e' },
+  { key: 'red', label: 'Red', value: '#ef4444' },
 ];
 
 interface Props {
@@ -23,128 +31,321 @@ export default function SettingsModal({ onClose }: Props) {
     setSettings(getSettings());
   }, []);
 
+  function update<K extends keyof Settings>(key: K, value: Settings[K]) {
+    setSettings(current => ({ ...current, [key]: value }));
+  }
+
   function handleSave() {
     saveSettings(settings);
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
       onClose();
-    }, 800);
+    }, 600);
   }
 
+  function handleReset() {
+    const reset = { ...defaultSettings, groqApiKey: settings.groqApiKey };
+    setSettings(reset);
+  }
+
+  const fieldClass = 'w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2.5 text-sm text-[#e8e8f4] placeholder-[#666678] focus:outline-none focus:border-[var(--trev-accent)] transition-colors';
+  const labelClass = 'block text-sm font-medium text-[#e8e8f4] mb-1.5';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-lg mx-4 rounded-2xl border border-[#2a2a3a] bg-[#111118] shadow-2xl"
+        className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl border border-[#2a2a3a] bg-[#111118] shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#2a2a3a]">
-          <h2 className="text-lg font-semibold text-[#e8e8f4]">Settings</h2>
-          <button onClick={onClose} className="text-[#888899] hover:text-[#e8e8f4] transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
-            </svg>
-          </button>
+          <div>
+            <h2 className="text-xl font-semibold text-[#e8e8f4]">Settings</h2>
+            <p className="text-xs text-[#777789] mt-1">Trev workspace preferences</p>
+          </div>
+          <button onClick={onClose} aria-label="Close settings" className="text-[#888899] hover:text-[#e8e8f4] transition-colors text-xl">×</button>
         </div>
 
-        <div className="px-6 py-5 space-y-6">
-          {/* AI Section */}
-          <div>
-            <h3 className="text-xs font-semibold text-[#f97316] uppercase tracking-widest mb-4">AI</h3>
+        <div className="overflow-y-auto max-h-[calc(90vh-145px)] px-6 py-6 space-y-8">
+          <section>
+            <h3 className="text-xs font-semibold text-[var(--trev-accent)] uppercase tracking-widest mb-4">General</h3>
+            <div className="space-y-4">
+              <Toggle
+                checked={settings.autoSave}
+                onChange={v => update('autoSave', v)}
+                label="Auto-save changes"
+                description="Persist project changes automatically while you work."
+              />
+              <Toggle
+                checked={settings.restoreWorkspace}
+                onChange={v => update('restoreWorkspace', v)}
+                label="Restore workspace"
+                description="Remember the last workspace and project between sessions."
+              />
+              <Toggle
+                checked={settings.confirmBeforeDelete}
+                onChange={v => update('confirmBeforeDelete', v)}
+                label="Confirm before deleting"
+                description="Ask for confirmation before removing a project."
+              />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-semibold text-[var(--trev-accent)] uppercase tracking-widest mb-4">Appearance</h3>
+            <div className="space-y-5">
+              <div>
+                <label className={labelClass}>Theme</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['dark', 'light', 'system'] as const).map(theme => (
+                    <button
+                      key={theme}
+                      onClick={() => update('theme', theme)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm capitalize transition-colors ${
+                        settings.theme === theme
+                          ? 'border-[var(--trev-accent)] bg-[var(--trev-accent)]/10 text-[var(--trev-accent)]'
+                          : 'border-[#2a2a3a] text-[#9999aa] hover:border-[#444456] hover:text-[#e8e8f4]'
+                      }`}
+                    >
+                      {theme}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Accent color</label>
+                <div className="flex flex-wrap gap-2">
+                  {ACCENTS.map(accent => (
+                    <button
+                      key={accent.key}
+                      title={accent.label}
+                      aria-label={accent.label}
+                      onClick={() => {
+                        update('accentColor', accent.key);
+                        update('customAccent', accent.value);
+                      }}
+                      className={`w-9 h-9 rounded-full border-2 transition-transform hover:scale-105 ${
+                        settings.accentColor === accent.key ? 'border-white scale-105' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: accent.value }}
+                    />
+                  ))}
+                  <label
+                    title="Custom accent"
+                    className={`relative w-9 h-9 rounded-full border-2 cursor-pointer overflow-hidden ${
+                      settings.accentColor === 'custom' ? 'border-white' : 'border-transparent'
+                    }`}
+                  >
+                    <input
+                      type="color"
+                      value={settings.customAccent}
+                      onChange={e => {
+                        update('customAccent', e.target.value);
+                        update('accentColor', 'custom');
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <span className="absolute inset-0" style={{ background: settings.customAccent }} />
+                  </label>
+                </div>
+                <p className="text-xs text-[#777789] mt-2">Choose a preset or pick any custom accent.</p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className={labelClass}>UI scale</label>
+                  <span className="text-xs text-[#777789]">{settings.uiScale}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="85"
+                  max="115"
+                  step="5"
+                  value={settings.uiScale}
+                  onChange={e => update('uiScale', Number(e.target.value))}
+                  className="w-full accent-[var(--trev-accent)]"
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Font</label>
+                <select value={settings.fontFamily} onChange={e => update('fontFamily', e.target.value as Settings['fontFamily'])} className={fieldClass}>
+                  <option value="inter">Inter</option>
+                  <option value="outfit">Outfit</option>
+                  <option value="system">System</option>
+                </select>
+              </div>
+
+              <Toggle
+                checked={settings.compactMode}
+                onChange={v => update('compactMode', v)}
+                label="Compact mode"
+                description="Reduce spacing across the interface."
+              />
+
+              <div>
+                <label className={labelClass}>Chat density</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['comfortable', 'compact'] as const).map(density => (
+                    <button
+                      key={density}
+                      onClick={() => update('chatDensity', density)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm capitalize transition-colors ${
+                        settings.chatDensity === density
+                          ? 'border-[var(--trev-accent)] bg-[var(--trev-accent)]/10 text-[var(--trev-accent)]'
+                          : 'border-[#2a2a3a] text-[#9999aa] hover:border-[#444456] hover:text-[#e8e8f4]'
+                      }`}
+                    >
+                      {density}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Sidebar position</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['left', 'right'] as const).map(position => (
+                    <button
+                      key={position}
+                      onClick={() => update('sidebarPosition', position)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm capitalize transition-colors ${
+                        settings.sidebarPosition === position
+                          ? 'border-[var(--trev-accent)] bg-[var(--trev-accent)]/10 text-[var(--trev-accent)]'
+                          : 'border-[#2a2a3a] text-[#9999aa] hover:border-[#444456] hover:text-[#e8e8f4]'
+                      }`}
+                    >
+                      {position}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-[#777789] mt-2">The workspace layout will consume this preference in the workspace settings pass.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-semibold text-[var(--trev-accent)] uppercase tracking-widest mb-4">AI & Builder</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#e8e8f4] mb-1.5">Groq API Key</label>
+                <label className={labelClass}>Groq API Key</label>
                 <div className="relative">
                   <input
                     type={showKey ? 'text' : 'password'}
                     value={settings.groqApiKey}
-                    onChange={e => setSettings(s => ({ ...s, groqApiKey: e.target.value }))}
+                    onChange={e => update('groqApiKey', e.target.value)}
                     placeholder="gsk_..."
-                    className="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2.5 text-sm text-[#e8e8f4] placeholder-[#888899] focus:outline-none focus:border-[#f97316] transition-colors pr-10"
+                    className={fieldClass + ' pr-10'}
                   />
-                  <button
-                    onClick={() => setShowKey(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888899] hover:text-[#e8e8f4] transition-colors"
-                  >
-                    {showKey ? (
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/></svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
-                    )}
+                  <button onClick={() => setShowKey(v => !v)} aria-label={showKey ? 'Hide API key' : 'Show API key'} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#888899] hover:text-[#e8e8f4]">
+                    {showKey ? '◉' : '◌'}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-[#888899]">
-                  Get your free key at{' '}
-                  <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="text-[#f97316] hover:underline">
-                    console.groq.com
-                  </a>
-                </p>
+                <p className="mt-1.5 text-xs text-[#777789]">Your key is stored locally in this browser.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#e8e8f4] mb-1.5">Model</label>
-                <select
-                  value={settings.model}
-                  onChange={e => setSettings(s => ({ ...s, model: e.target.value }))}
-                  className="w-full bg-[#0a0a0f] border border-[#2a2a3a] rounded-lg px-3 py-2.5 text-sm text-[#e8e8f4] focus:outline-none focus:border-[#f97316] transition-colors"
-                >
-                  {GROQ_MODELS.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
+                <label className={labelClass}>Model</label>
+                <select value={settings.model} onChange={e => update('model', e.target.value)} className={fieldClass}>
+                  {GROQ_MODELS.map(model => <option key={model} value={model}>{model}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#e8e8f4] mb-1.5">
-                  Temperature <span className="text-[#888899]">{settings.temperature}</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className={labelClass}>Temperature</label>
+                  <span className="text-xs text-[#777789]">{settings.temperature.toFixed(1)}</span>
+                </div>
                 <input
-                  type="range" min="0" max="1" step="0.1"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
                   value={settings.temperature}
-                  onChange={e => setSettings(s => ({ ...s, temperature: parseFloat(e.target.value) }))}
-                  className="w-full accent-[#f97316]"
+                  onChange={e => update('temperature', Number(e.target.value))}
+                  className="w-full accent-[var(--trev-accent)]"
                 />
               </div>
-            </div>
-          </div>
 
-          {/* Builder Section */}
-          <div>
-            <h3 className="text-xs font-semibold text-[#f97316] uppercase tracking-widest mb-4">Builder</h3>
-            <div className="space-y-3">
-              {[
-                { key: 'autoPreview', label: 'Auto-refresh preview after changes' },
-                { key: 'autoFix', label: 'Automatically fix build errors' },
-              ].map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 cursor-pointer group">
-                  <div
-                    onClick={() => setSettings(s => ({ ...s, [key]: !s[key as keyof Settings] }))}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${settings[key as keyof Settings] ? 'bg-[#f97316]' : 'bg-[#2a2a3a]'}`}
-                  >
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${settings[key as keyof Settings] ? 'translate-x-5' : ''}`} />
-                  </div>
-                  <span className="text-sm text-[#e8e8f4] group-hover:text-white transition-colors">{label}</span>
-                </label>
-              ))}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className={labelClass}>Max output tokens</label>
+                  <span className="text-xs text-[#777789]">{settings.maxTokens}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1024"
+                  max="16384"
+                  step="1024"
+                  value={settings.maxTokens}
+                  onChange={e => update('maxTokens', Number(e.target.value))}
+                  className="w-full accent-[var(--trev-accent)]"
+                />
+              </div>
+
+              <Toggle
+                checked={settings.autoPreview}
+                onChange={v => update('autoPreview', v)}
+                label="Auto-refresh preview"
+                description="Refresh the preview after generated project changes."
+              />
+              <Toggle
+                checked={settings.autoFix}
+                onChange={v => update('autoFix', v)}
+                label="Automatically fix build errors"
+                description="Allow the builder to use its repair flow when supported."
+              />
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#2a2a3a] flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-[#888899] hover:text-[#e8e8f4] transition-colors">
-            Cancel
+        <div className="px-6 py-4 border-t border-[#2a2a3a] flex items-center justify-between gap-3">
+          <button onClick={handleReset} className="px-3 py-2 text-sm text-[#888899] hover:text-[#e8e8f4] transition-colors">
+            Reset section
           </button>
-          <button
-            onClick={handleSave}
-            className="px-5 py-2 bg-[#f97316] hover:bg-[#ea6c0f] text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {saved ? '✓ Saved' : 'Save Settings'}
-          </button>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[#888899] hover:text-[#e8e8f4] transition-colors">Cancel</button>
+            <button onClick={handleSave} className="px-5 py-2 bg-[var(--trev-accent)] hover:brightness-110 text-white text-sm font-medium rounded-lg transition-colors">
+              {saved ? '✓ Saved' : 'Save Settings'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="w-full flex items-center justify-between gap-4 text-left group"
+      aria-pressed={checked}
+    >
+      <span>
+        <span className="block text-sm text-[#e8e8f4] group-hover:text-white">{label}</span>
+        <span className="block text-xs text-[#777789] mt-0.5">{description}</span>
+      </span>
+      <span className={`relative shrink-0 w-10 h-5 rounded-full transition-colors ${
+        checked ? 'bg-[var(--trev-accent)]' : 'bg-[#2a2a3a]'
+      }`}>
+        <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+          checked ? 'translate-x-5' : ''
+        }`} />
+      </span>
+    </button>
   );
 }
