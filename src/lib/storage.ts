@@ -11,13 +11,24 @@ export const defaultSettings: Settings = {
   autoPreview: true,
   autoFix: true,
   theme: 'dark',
+  accentColor: 'orange',
+  customAccent: '#f97316',
+  uiScale: 100,
+  compactMode: false,
+  fontFamily: 'inter',
+  chatDensity: 'comfortable',
+  sidebarPosition: 'left',
+  autoSave: true,
+  restoreWorkspace: true,
+  confirmBeforeDelete: true,
 };
 
 export function getSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...defaultSettings };
-    return { ...defaultSettings, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return { ...defaultSettings, ...parsed };
   } catch {
     return { ...defaultSettings };
   }
